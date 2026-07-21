@@ -1,0 +1,21 @@
+{
+  "data_source": "kaggle",
+  "n_rows": 307511,
+  "n_features": 43,
+  "baseline_cv_auc": 0.7483306543617336,
+  "lgbm_cv_auc": 0.7673226763351807,
+  "selected_model": "lgbm",
+  "holdout": {
+    "auc": 0.773858428932486,
+    "ks": 0.4111630613060392,
+    "default_rate": 0.08072776937710356
+  },
+  "optimal_threshold": {
+    "threshold": 0.62,
+    "cost": 3664.75,
+    "approval_rate": 0.8258133749573191,
+    "fn": 2437,
+    "fp": 8185
+  },
+  "elapsed_s": 65.5
+}
