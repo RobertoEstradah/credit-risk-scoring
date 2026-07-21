@@ -28,7 +28,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 from src import config
 from src.aggregates import merge_aggregates
 from src.data import load_data, load_secondary
-from src.evaluate import core_metrics, cost_curve, optimal_threshold
+from src.evaluate import calibration_metrics, core_metrics, cost_curve, optimal_threshold, reliability_curve
 from src.features import add_domain_features, build_xy, feature_lists
 from src.train import HAS_LGBM, cv_auc, log_run, make_baseline, make_lgbm, split
 
@@ -82,6 +82,26 @@ def main(with_shap: bool = False) -> dict:
     print(f"[holdout {model_name}] AUC={metrics['auc']:.4f} KS={metrics['ks']:.4f}")
     results["selected_model"] = model_name
     results["holdout"] = metrics
+
+    # ------------------------------------------------------ 5b. calibración
+    calib = calibration_metrics(y_test.to_numpy(), y_prob)
+    print(f"[calibración] Brier={calib['brier_score']:.4f} ECE={calib['ece']:.4f}")
+    results["calibration"] = calib
+
+    rel = reliability_curve(y_test.to_numpy(), y_prob)
+    rel.to_csv(config.REPORTS_DIR / "reliability_curve.csv", index=False)
+
+    fig, ax = plt.subplots(figsize=(5, 5), dpi=110)
+    ax.plot([0, 1], [0, 1], ls="--", color="gray", lw=1, label="calibración perfecta")
+    ax.plot(rel["predicted_mean"], rel["observed_rate"], marker="o", color="#2563EB",
+             label=f"LightGBM (ECE={calib['ece']:.3f}, Brier={calib['brier_score']:.3f})")
+    ax.set_xlabel("probabilidad predicha (media por bin)")
+    ax.set_ylabel("tasa de default observada")
+    ax.set_title(f"Reliability curve (fuente: {source})")
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    fig.savefig(config.REPORTS_DIR / "reliability_curve.png")
+    plt.close(fig)
 
     # ---------------------------------------- 6. umbral óptimo por costos
     best = optimal_threshold(y_test.to_numpy(), y_prob)

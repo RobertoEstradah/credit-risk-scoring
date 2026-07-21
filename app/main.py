@@ -64,6 +64,7 @@ class Applicant(BaseModel):
     NAME_EDUCATION_TYPE: str = "Secondary"
     NAME_FAMILY_STATUS: str = "Married"
     NAME_HOUSING_TYPE: str = "House / apartment"
+    ORGANIZATION_TYPE: str = "Business Entity Type 3"
     # agregados de historial (opcionales; null = sin historial conocido)
     BUREAU_LOAN_COUNT: float | None = 0
     BUREAU_ACTIVE_COUNT: float | None = 0

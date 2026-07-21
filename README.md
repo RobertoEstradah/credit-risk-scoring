@@ -4,7 +4,7 @@ End-to-end credit default prediction system: multi-table data validation →
 domain + historical feature engineering → model comparison (Logistic Regression
 vs LightGBM) → KS/AUC evaluation → **cost-based decision threshold
 optimization** → SHAP explainability → **FastAPI scoring service** (Docker,
-CI). Leakage-safe sklearn Pipelines, 14-test suite, train/serve parity.
+CI). Leakage-safe sklearn Pipelines, 17-test suite, train/serve parity.
 
 > **Data source disclosure:** the pipeline runs on the real Home Credit
 > dataset when present (`data/download.sh`) and falls back to a synthetic
@@ -31,22 +31,53 @@ that minimizes expected cost** — the decision a risk team actually makes.
 
 | Model | CV AUC (5-fold) | Holdout AUC | KS |
 |---|---|---|---|
-| Logistic Regression (baseline) | 0.7483 ± 0.0022 | — | — |
-| **LightGBM (selected)** | **0.7673 ± 0.0011** | **0.7739** | **0.4112** |
+| Logistic Regression (baseline) | 0.7489 ± 0.0020 | — | — |
+| **LightGBM (selected)** | **0.7689 ± 0.0016** | **0.7729** | **0.4104** |
 
 LightGBM beats the linear baseline on CV — as expected on the real dataset,
 which has stronger non-linear interactions than the synthetic fallback (where
 the baseline wins, see `reports/` from a synthetic run). Model selection is
 purely CV-driven; nothing is hardcoded.
 
-Optimal decision: threshold **0.62** → approval rate **82.6%**, minimizing
-expected cost given the FN/FP cost matrix (FN=2,437, FP=8,185, cost=3,664.75).
+Optimal decision: threshold **0.12** → approval rate **80.4%**, minimizing
+expected cost given the FN/FP cost matrix (FN=2,266, FP=9,344, cost=3,667.6).
+The threshold looks low compared to a naive 0.5 cutoff — that's expected and
+correct: with an 8% base default rate and calibrated probabilities, a 12%
+predicted PD is already well above average risk, and rejecting a good
+customer (FP) costs much less than missing a default (FN) in the cost matrix.
+
+**Probability calibration:** the model's raw `predict_proba` is checked
+against actual outcomes, not just ranking (AUC/KS). Brier score = 0.0667,
+Expected Calibration Error = 0.0028 — both very good (see
+`reports/reliability_curve.png`). This wasn't the case initially: training
+with `class_weight="balanced"` gave Brier = 0.1797 (**worse than just
+predicting the base rate**, whose trivial Brier is 0.0742) and ECE = 0.30,
+i.e. the model was systematically overestimating risk by ~10–30 percentage
+points across the probability range, despite having good discrimination.
+Removing `class_weight` fixed calibration almost for free — CV AUC actually
+improved slightly and the cost-based business outcome barely moved. The
+lesson: class weighting fights the same imbalance the cost-based threshold
+already handles, and doing both distorts the probability scale for no
+benefit. See `src/train.py` for the fix and CLAUDE.md's decision log for
+the full before/after comparison.
 
 Top SHAP drivers (global): `EXT_SOURCES_MEAN`, `CREDIT_TERM`,
-`PREV_CREDIT_APPLICATION_RATIO`, `GOODS_CREDIT_RATIO`, `EXT_SOURCE_3` —
+`PREV_CREDIT_APPLICATION_RATIO`, `GOODS_CREDIT_RATIO`, `CODE_GENDER` —
 consistent with credit-risk domain knowledge (bureau scores and leverage
-ratios dominate). Single-case explanations ("why was applicant X rejected")
+ratios dominate). No single `ORGANIZATION_TYPE` category cracks the
+individual top 15 (its signal splits across ~18 one-hot dummies), but
+summed as a group it ranks **7th** overall — real, worth the added
+cardinality. Single-case explanations ("why was applicant X rejected")
 in `reports/shap_case_example.csv`.
+
+**High-cardinality categorical handled:** `ORGANIZATION_TYPE` (58 real
+categories) is now in the model. `OneHotEncoder(min_frequency=0.01)` in
+`src/train.py` already grouped rare categories automatically — no new code
+needed there, just adding the column to `config.CATEGORICAL_COLS`. One
+finding worth noting: `ORGANIZATION_TYPE == "XNA"` has exactly 55,374 rows —
+the same count as the `DAYS_EMPLOYED == 365243` sentinel. It's the same
+population (pensioners/unemployed), confirmed by Home Credit's own data
+dictionary ("XNA" = not applicable).
 
 **Real-data quirk handled:** `DAYS_EMPLOYED == 365243` is Home Credit's null
 sentinel (~1000 years employed, mostly pensioners/unemployed; 18% of rows).
@@ -54,6 +85,21 @@ It's converted to `NaN` in `src/data.py` before feature engineering so it
 flows through the same median imputer as any other missing value, instead of
 silently collapsing to `EMPLOYED_YEARS = 0`. Covered by
 `tests/test_pipeline.py::test_days_employed_sentinel_becomes_nan`.
+
+**Outlier handled:** `AMT_INCOME_TOTAL` has a max of 117,000,000 (real
+99.9th percentile is 900,000 — ~130x). `src/data.py::_cap_income_outliers`
+clips it to a fixed 1,000,000 cap (a constant, not computed from the
+train/test split, to avoid leaking test-set statistics — same principle as
+the `DAYS_EMPLOYED` sentinel fix). The row is kept, not dropped: only the
+one implausible value is capped. Affects 250/307,511 rows (0.08%); metrics
+moved by noise-level amounts, as expected for a fix this narrow. Covered by
+`tests/test_pipeline.py::test_amt_income_outlier_is_capped_not_dropped`.
+
+**Anomaly documented, not corrected:** `CNT_CHILDREN` has 2 rows with value
+19 (an abrupt jump from the typical max of 14). Left as-is — the volume is
+negligible (2/307,511) and, unlike the income outlier, there's no clear
+signal it's a data-entry error rather than a genuinely large family. See
+`notebooks/01_eda.ipynb`.
 
 ## Architecture
 
@@ -89,7 +135,7 @@ Docker + GitHub Actions CI   — tests → train → API tests on every push
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/ -q          # 14 tests, <5 s, no external data needed
+python -m pytest tests/ -q          # 17 tests, <5 s, no external data needed
 python run_pipeline.py --shap       # full run (synthetic fallback if no CSV)
 uvicorn app.main:app --reload       # scoring service on :8000
 
@@ -108,7 +154,7 @@ curl -X POST localhost:8000/score -H "Content-Type: application/json" -d '{
   "DAYS_BIRTH": -14600, "DAYS_EMPLOYED": -4380,
   "EXT_SOURCE_1": 0.85, "EXT_SOURCE_2": 0.8, "EXT_SOURCE_3": 0.82
 }'
-# → {"probability_of_default": ..., "decision": "approve", "threshold": 0.62,
+# → {"probability_of_default": ..., "decision": "approve", "threshold": 0.12,
 #    "model": "lgbm", "trained_on": "kaggle"}
 ```
 
@@ -139,6 +185,17 @@ curl -X POST localhost:8000/score -H "Content-Type: application/json" -d '{
   `.sum()` on an all-NaN group returns `0.0`, while SQL `SUM()` returns
   `NULL` — the SQL version uses `COALESCE(SUM(...), 0)` to match pandas
   exactly rather than silently diverging on edge-case clients.
+- **No class rebalancing at training time:** neither model uses
+  `class_weight="balanced"`. The cost-based decision threshold already
+  handles the ~92/8 imbalance at the business-decision layer; rebalancing
+  the training loss on top of that distorted `predict_proba` badly (see
+  calibration finding above) for no gain in AUC/KS or expected cost. Two
+  mechanisms solving the same problem stacked badly — solve imbalance in
+  exactly one place.
+- **High-cardinality categoricals need no special handling:** `OneHotEncoder(
+  min_frequency=0.01)` in `src/train.py` already groups rare categories into
+  an "infrequent" bucket. Adding `ORGANIZATION_TYPE` (58 real categories) was
+  a one-line change to `config.CATEGORICAL_COLS` — no new encoding logic.
 
 ## Repository layout
 
@@ -146,7 +203,7 @@ curl -X POST localhost:8000/score -H "Content-Type: application/json" -d '{
 app/main.py            FastAPI scoring service
 src/                   config, data, aggregates, features, train, evaluate, explain
 notebooks/01_eda.ipynb executed EDA with findings (declares data source)
-tests/                 14 tests: schema, leakage, metrics, e2e, API contract
+tests/                 17 tests: schema, leakage, metrics, e2e, API contract
 reports/               results.json, figures, cost curve, SHAP outputs
 data/download.sh       Kaggle download script
 Dockerfile · .github/workflows/ci.yml
@@ -160,6 +217,7 @@ Python · pandas · DuckDB · scikit-learn · LightGBM · SHAP · MLflow · Fast
 
 - [x] Run on real Home Credit data; update all metrics and EDA findings
 - [x] Handle `DAYS_EMPLOYED == 365243` null sentinel
-- [ ] Handle high-cardinality categoricals (e.g. `ORGANIZATION_TYPE`, not yet in the feature set)
-- [ ] Probability calibration (reliability curves) for PD estimates
+- [x] Handle high-cardinality categoricals (`ORGANIZATION_TYPE`, 58 categories)
+- [x] Probability calibration (reliability curves) for PD estimates —
+      found and fixed a real miscalibration bug (`class_weight="balanced"`)
 - [ ] Deploy container to a public endpoint (Railway/Render) + demo link

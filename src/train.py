@@ -52,12 +52,16 @@ def _preprocessor(for_linear: bool, columns=None) -> ColumnTransformer:
 
 
 def make_baseline(columns=None) -> Pipeline:
+    # Sin class_weight: el desbalance ~92/8 ya se maneja con el umbral de
+    # decisión por costos (src/evaluate.py::optimal_threshold), no con la
+    # pérdida de entrenamiento. Rebalancear aquí distorsiona predict_proba
+    # (ver decisiones técnicas / calibración en CLAUDE.md).
     return Pipeline(
         [
             ("prep", _preprocessor(for_linear=True, columns=columns)),
             (
                 "clf",
-                LogisticRegression(max_iter=2000, class_weight="balanced", C=0.1),
+                LogisticRegression(max_iter=2000, C=0.1),
             ),
         ]
     )
@@ -78,7 +82,6 @@ def make_lgbm(columns=None) -> Pipeline:
                     min_child_samples=50,
                     subsample=0.8,
                     colsample_bytree=0.8,
-                    class_weight="balanced",
                     random_state=config.RANDOM_STATE,
                     verbose=-1,
                 ),

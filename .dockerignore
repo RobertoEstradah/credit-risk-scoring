@@ -1,0 +1,15 @@
+.git/
+data/*.csv
+data/*.zip
+notebooks/
+reports/
+tests/
+mlruns/
+mlflow.db
+__pycache__/
+.pytest_cache/
+*.pyc
+.ipynb_checkpoints/
+venv/
+.venv/
+.claude/

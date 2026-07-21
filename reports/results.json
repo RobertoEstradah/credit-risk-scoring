@@ -1,21 +1,25 @@
 {
   "data_source": "kaggle",
   "n_rows": 307511,
-  "n_features": 43,
-  "baseline_cv_auc": 0.7483306543617336,
-  "lgbm_cv_auc": 0.7673226763351807,
+  "n_features": 44,
+  "baseline_cv_auc": 0.7488589971043489,
+  "lgbm_cv_auc": 0.7688876973094018,
   "selected_model": "lgbm",
   "holdout": {
-    "auc": 0.773858428932486,
-    "ks": 0.4111630613060392,
+    "auc": 0.772912082550901,
+    "ks": 0.4104145873496947,
     "default_rate": 0.08072776937710356
   },
-  "optimal_threshold": {
-    "threshold": 0.62,
-    "cost": 3664.75,
-    "approval_rate": 0.8258133749573191,
-    "fn": 2437,
-    "fp": 8185
+  "calibration": {
+    "brier_score": 0.06670162860852963,
+    "ece": 0.002806017510832476
   },
-  "elapsed_s": 65.5
+  "optimal_threshold": {
+    "threshold": 0.12,
+    "cost": 3667.6,
+    "approval_rate": 0.8041884135733216,
+    "fn": 2266,
+    "fp": 9344
+  },
+  "elapsed_s": 187.2
 }

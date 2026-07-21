@@ -66,6 +66,15 @@ def make_synthetic(n: int = 20_000, seed: int = config.RANDOM_STATE) -> pd.DataF
             "NAME_HOUSING_TYPE": rng.choice(
                 ["House / apartment", "With parents", "Rented apartment"],
                 n, p=[0.88, 0.07, 0.05]),
+            # proporciones aproximadas a las reales (58 categorías reales,
+            # aquí solo las más frecuentes + "Other_misc" como cola larga)
+            "ORGANIZATION_TYPE": rng.choice(
+                ["Business Entity Type 3", "XNA", "Self-employed", "Other", "Medicine",
+                 "Business Entity Type 2", "Government", "School", "Trade: type 7",
+                 "Kindergarten", "Construction", "Business Entity Type 1",
+                 "Transport: type 4", "Other_misc"],
+                n, p=[0.221, 0.180, 0.125, 0.054, 0.036, 0.034, 0.034, 0.029,
+                      0.025, 0.022, 0.022, 0.019, 0.018, 0.181]),
         }
     )
 
@@ -150,12 +159,27 @@ def _clean_sentinels(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _cap_income_outliers(df: pd.DataFrame) -> pd.DataFrame:
+    """Recorta AMT_INCOME_TOTAL a un tope fijo (ver config.AMT_INCOME_CAP).
+
+    Cap, no NaN: a diferencia del sentinel de DAYS_EMPLOYED, esto no es un
+    código de nulo — es un ingreso real pero implausible. Recortar preserva
+    la fila (el resto de las columnas sigue siendo información válida) en
+    vez de perderla por completo.
+    """
+    df = df.copy()
+    if "AMT_INCOME_TOTAL" in df.columns:
+        df["AMT_INCOME_TOTAL"] = df["AMT_INCOME_TOTAL"].clip(upper=config.AMT_INCOME_CAP)
+    return df
+
+
 def load_data() -> tuple[pd.DataFrame, str]:
     """Devuelve (df_principal, fuente) donde fuente ∈ {'kaggle', 'synthetic'}."""
     if config.RAW_FILE.exists():
         cols = [config.ID_COL, config.TARGET] + config.NUMERIC_COLS + config.CATEGORICAL_COLS
         df = pd.read_csv(config.RAW_FILE, usecols=lambda c: c in cols)
         df = _clean_sentinels(df)
+        df = _cap_income_outliers(df)
         return _validate(df), "kaggle"
     return make_synthetic(), "synthetic"
 

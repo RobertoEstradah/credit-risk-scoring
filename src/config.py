@@ -36,6 +36,12 @@ NUMERIC_COLS = [
 # DAYS_EMPLOYED — típicamente pensionados/desempleados. Se limpia en data.py.
 DAYS_EMPLOYED_SENTINEL = 365243
 
+# Outlier real: AMT_INCOME_TOTAL llega a 117,000,000 (percentil 99.9 real es
+# ~900,000). Cap fijo (no calculado del split train/test, para no filtrar
+# estadísticos de test) por encima del cual casi seguro es error de captura,
+# no un ingreso alto legítimo. Ver data.py::_cap_income_outliers.
+AMT_INCOME_CAP = 1_000_000
+
 CATEGORICAL_COLS = [
     "NAME_CONTRACT_TYPE",
     "CODE_GENDER",
@@ -45,6 +51,11 @@ CATEGORICAL_COLS = [
     "NAME_EDUCATION_TYPE",
     "NAME_FAMILY_STATUS",
     "NAME_HOUSING_TYPE",
+    # Alta cardinalidad (58 categorías reales); el OneHotEncoder de train.py
+    # ya usa min_frequency=0.01 para agrupar categorías raras, así que no
+    # requiere manejo especial. "XNA" (~18% de las filas) es el mismo grupo
+    # de pensionados/desempleados que el sentinel DAYS_EMPLOYED==365243.
+    "ORGANIZATION_TYPE",
 ]
 
 # ---------------------------------------------------------------- modelado
