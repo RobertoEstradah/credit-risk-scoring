@@ -1,6 +1,7 @@
 data/*.csv
 data/*.zip
-models/
+models/*
+!models/model.joblib
 mlruns/
 mlflow.db
 __pycache__/

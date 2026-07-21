@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: credit-risk-scoring
+    env: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    plan: free
