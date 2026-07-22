@@ -6,6 +6,12 @@ vs LightGBM) → KS/AUC evaluation → **cost-based decision threshold
 optimization** → SHAP explainability → **FastAPI scoring service** (Docker,
 CI). Leakage-safe sklearn Pipelines, 17-test suite, train/serve parity.
 
+**Live demo:** [credit-risk-scoring-58zh.onrender.com/docs](https://credit-risk-scoring-58zh.onrender.com/docs)
+(Swagger UI — try `/score` interactively). Free-tier hosting sleeps after
+inactivity, so the first request after a while can take ~30-60s to wake up;
+subsequent requests are fast. Serves the real Kaggle-trained model — check
+`/health` to confirm.
+
 > **Data source disclosure:** the pipeline runs on the real Home Credit
 > dataset when present (`data/download.sh`) and falls back to a synthetic
 > generator with the same schema otherwise. Every artifact — `results.json`,
@@ -220,4 +226,4 @@ Python · pandas · DuckDB · scikit-learn · LightGBM · SHAP · MLflow · Fast
 - [x] Handle high-cardinality categoricals (`ORGANIZATION_TYPE`, 58 categories)
 - [x] Probability calibration (reliability curves) for PD estimates —
       found and fixed a real miscalibration bug (`class_weight="balanced"`)
-- [ ] Deploy container to a public endpoint (Railway/Render) + demo link
+- [x] Deploy container to a public endpoint (Render) + demo link
