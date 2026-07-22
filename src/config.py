@@ -33,7 +33,7 @@ NUMERIC_COLS = [
     "REGION_POPULATION_RELATIVE",
 ]
 # Home Credit usa 365243 ("~1000 años empleado") como sentinel de nulo en
-# DAYS_EMPLOYED — típicamente pensionados/desempleados. Se limpia en data.py.
+# DAYS_EMPLOYED - típicamente pensionados/desempleados. Se limpia en data.py.
 DAYS_EMPLOYED_SENTINEL = 365243
 
 # Outlier real: AMT_INCOME_TOTAL llega a 117,000,000 (percentil 99.9 real es

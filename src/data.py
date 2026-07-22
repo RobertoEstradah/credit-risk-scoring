@@ -3,7 +3,7 @@
 `load_data()` lee application_train.csv (Home Credit) si existe; si no, genera
 datos sintéticos con el mismo esquema. Lo mismo aplica a bureau.csv y
 previous_application.csv para las agregaciones multi-tabla (src/aggregates.py).
-El README y results.json declaran SIEMPRE la fuente usada — nada de presentar
+El README y results.json declaran SIEMPRE la fuente usada - nada de presentar
 resultados sintéticos como reales.
 
 La señal sintética incluye una interacción no lineal (apalancamiento pesa más
@@ -163,7 +163,7 @@ def _cap_income_outliers(df: pd.DataFrame) -> pd.DataFrame:
     """Recorta AMT_INCOME_TOTAL a un tope fijo (ver config.AMT_INCOME_CAP).
 
     Cap, no NaN: a diferencia del sentinel de DAYS_EMPLOYED, esto no es un
-    código de nulo — es un ingreso real pero implausible. Recortar preserva
+    código de nulo - es un ingreso real pero implausible. Recortar preserva
     la fila (el resto de las columnas sigue siendo información válida) en
     vez de perderla por completo.
     """

@@ -1,8 +1,8 @@
 """Servicio de scoring: FastAPI sobre el artefacto entrenado (models/model.joblib).
 
 Endpoints:
-    GET  /health  — liveness + metadata del modelo cargado
-    POST /score   — recibe features de un solicitante, devuelve PD, decisión
+    GET  /health  - liveness + metadata del modelo cargado
+    POST /score   - recibe features de un solicitante, devuelve PD, decisión
                     (según umbral óptimo por costos) y metadata
 
 Diseño:
