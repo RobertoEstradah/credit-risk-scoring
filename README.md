@@ -13,6 +13,8 @@ interactive Swagger. Free-tier hosting sleeps after inactivity, so the first
 request after a while can take ~30-60s to wake up; subsequent requests are
 fast. Serves the real Kaggle-trained model - check `/health` to confirm.
 
+![demo UI: form on the left, prediction result below](reports/demo-screenshot.png)
+
 Why bother deploying instead of leaving this as code: a repo proves you can
 write a pipeline, a running service proves the pipeline actually works.
 The `/health` response matching the holdout AUC reported below is evidence
