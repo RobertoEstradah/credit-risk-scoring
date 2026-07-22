@@ -55,7 +55,7 @@ def make_baseline(columns=None) -> Pipeline:
     # Sin class_weight: el desbalance ~92/8 ya se maneja con el umbral de
     # decisión por costos (src/evaluate.py::optimal_threshold), no con la
     # pérdida de entrenamiento. Rebalancear aquí distorsiona predict_proba
-    # (ver decisiones técnicas / calibración en CLAUDE.md).
+    # (ver evaluate.py::calibration_metrics).
     return Pipeline(
         [
             ("prep", _preprocessor(for_linear=True, columns=columns)),

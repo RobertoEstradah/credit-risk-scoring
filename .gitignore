@@ -10,3 +10,7 @@ __pycache__/
 .ipynb_checkpoints/
 venv/
 .venv/
+.claude/
+CLAUDE.md
+claude.md
+.claude.json

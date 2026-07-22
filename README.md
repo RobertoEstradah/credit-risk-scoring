@@ -64,8 +64,7 @@ Removing `class_weight` fixed calibration almost for free — CV AUC actually
 improved slightly and the cost-based business outcome barely moved. The
 lesson: class weighting fights the same imbalance the cost-based threshold
 already handles, and doing both distorts the probability scale for no
-benefit. See `src/train.py` for the fix and CLAUDE.md's decision log for
-the full before/after comparison.
+benefit. See `src/train.py` for the fix.
 
 Top SHAP drivers (global): `EXT_SOURCES_MEAN`, `CREDIT_TERM`,
 `PREV_CREDIT_APPLICATION_RATIO`, `GOODS_CREDIT_RATIO`, `CODE_GENDER` —
