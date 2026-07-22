@@ -226,6 +226,27 @@ curl -X POST localhost:8000/score -H "Content-Type: application/json" -d '{
   an "infrequent" bucket. Adding `ORGANIZATION_TYPE` (58 real categories) was
   a one-line change to `config.CATEGORICAL_COLS` - no new encoding logic.
 
+## Known limitations
+
+This is a portfolio project, not a production credit system. Deliberately
+out of scope, so nobody mistakes silence for an oversight:
+
+- **No authentication or rate limiting on the public API.** Anyone with the
+  URL can call `/score`. Fine for a demo serving synthetic-looking test
+  profiles; not fine for a real lending decision system.
+- **No drift or recalibration monitoring.** The calibration reported above
+  (Brier/ECE) is a one-time measurement against a holdout split, not a
+  live metric. A production version would need to re-check calibration
+  periodically as the applicant population shifts over time.
+- **CI runs tests but doesn't build the Docker image.** `.github/workflows/
+  ci.yml` installs dependencies and runs the pytest suite on every push; it
+  does not run `docker build`, so a Dockerfile regression could pass CI and
+  still fail to build. The image has only ever been built and verified by
+  hand (see the Docker section in the decision log).
+- **Single model, no challenger/champion setup.** LightGBM either beats the
+  logistic baseline on CV or the baseline ships - there's no ensemble, no
+  A/B test infrastructure, no shadow deployment.
+
 ## Repository layout
 
 ```
@@ -251,3 +272,6 @@ Python · pandas · DuckDB · scikit-learn · LightGBM · SHAP · MLflow · Fast
 - [x] Probability calibration (reliability curves) for PD estimates -
       found and fixed a real miscalibration bug (`class_weight="balanced"`)
 - [x] Deploy container to a public endpoint (Render) + demo link
+- [ ] Add a Docker build step to CI (currently only tests run; the image is
+      built and verified by hand, see Known limitations)
+- [ ] Basic auth or rate limiting on the public `/score` endpoint

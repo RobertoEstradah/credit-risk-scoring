@@ -263,6 +263,42 @@
     text-decoration: underline;
     text-underline-offset: 2px;
   }
+
+  .footer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .footer-badges {
+    display: flex;
+    gap: 8px;
+  }
+
+  .badge-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+  }
+
+  .badge-pill:hover {
+    color: var(--text-strong);
+    border-color: #C7C7C4;
+  }
 </style>
 </head>
 <body>
@@ -351,6 +387,13 @@
     <a href="https://github.com/RobertoEstradah/credit-risk-scoring">Source on GitHub</a>
      &middot;
     <a href="/docs">API reference</a>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Roberto Estrada</span>
+      <div class="footer-badges">
+        <a class="badge-pill" href="https://www.linkedin.com/in/roberto-estradah" aria-label="LinkedIn" target="_blank" rel="noopener">IN</a>
+        <a class="badge-pill" href="https://github.com/RobertoEstradah" aria-label="GitHub" target="_blank" rel="noopener">GH</a>
+      </div>
+    </div>
   </footer>
 </main>
 
