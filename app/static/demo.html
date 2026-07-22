@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credit Risk Scoring - Demo</title>
+<style>
+  :root {
+    --bg: #FBFBFA;
+    --surface: #FFFFFF;
+    --border: #EAEAEA;
+    --text: #2F3437;
+    --text-strong: #111111;
+    --text-muted: #787774;
+    --accent: #111111;
+    --accent-hover: #333333;
+    --green-bg: #EDF3EC;
+    --green-text: #346538;
+    --red-bg: #FDEBEC;
+    --red-text: #9F2F2D;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 48px 20px 80px;
+  }
+
+  main {
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 32px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    color: var(--text-strong);
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+
+  header p {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  header p a {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .card + .card {
+    margin-top: 20px;
+  }
+
+  fieldset {
+    border: none;
+    padding: 0;
+    margin: 0 0 20px;
+  }
+
+  legend {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    padding: 0 0 12px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  input[type="number"] {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    color: var(--text-strong);
+    background: var(--bg);
+    transition: border-color 150ms var(--ease-out);
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: #C7C7C4;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  input[type="range"] {
+    flex: 1;
+    accent-color: var(--text-strong);
+  }
+
+  .slider-value {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+    font-size: 0.85rem;
+    color: var(--text-strong);
+    width: 3ch;
+    text-align: right;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 0.95rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out);
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
+
+  #predict-btn {
+    background: var(--accent);
+    color: #fff;
+    padding: 11px 20px;
+    flex: 1;
+  }
+
+  #predict-btn:hover {
+    background: var(--accent-hover);
+  }
+
+  #predict-btn:disabled {
+    background: #B9B9B6;
+    cursor: default;
+  }
+
+  #example-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+  }
+
+  #example-btn:hover {
+    color: var(--text-strong);
+    border-color: #C7C7C4;
+  }
+
+  #result {
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out);
+    pointer-events: none;
+  }
+
+  #result.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .result-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .pd-value {
+    font-size: 2rem;
+    color: var(--text-strong);
+    letter-spacing: -0.02em;
+  }
+
+  .pd-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+
+  .badge.approve {
+    background: var(--green-bg);
+    color: var(--green-text);
+  }
+
+  .badge.reject {
+    background: var(--red-bg);
+    color: var(--red-text);
+  }
+
+  .meta {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    line-height: 1.7;
+  }
+
+  #status {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 14px;
+    min-height: 1.2em;
+  }
+
+  #status.error {
+    color: var(--red-text);
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  footer a {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Score a credit application</h1>
+    <p>
+      Runs against the real model trained on Home Credit's Kaggle dataset.
+      For the full request schema, see <a href="/docs">/docs</a>.
+    </p>
+  </header>
+
+  <div class="card">
+    <form id="score-form">
+      <fieldset>
+        <legend>Loan</legend>
+        <div class="grid">
+          <div>
+            <label for="income">Annual income (MXN)</label>
+            <input type="number" id="income" min="0" step="1000" value="250000" required>
+          </div>
+          <div>
+            <label for="credit">Credit amount</label>
+            <input type="number" id="credit" min="0" step="1000" value="400000" required>
+          </div>
+          <div>
+            <label for="annuity">Annual payment</label>
+            <input type="number" id="annuity" min="0" step="500" value="25000">
+          </div>
+          <div>
+            <label for="age">Age (years)</label>
+            <input type="number" id="age" min="18" max="100" step="1" value="40" required>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Employment</legend>
+        <div class="grid">
+          <div>
+            <label for="employed">Years employed (0 if retired / unemployed)</label>
+            <input type="number" id="employed" min="0" max="60" step="1" value="12">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Bureau scores (0-1, higher = lower risk)</legend>
+        <div class="slider-row" style="margin-bottom: 10px;">
+          <label style="width: 90px; margin: 0;" for="ext1">Score 1</label>
+          <input type="range" id="ext1" min="0" max="1" step="0.01" value="0.85">
+          <span class="slider-value" id="ext1-val">0.85</span>
+        </div>
+        <div class="slider-row" style="margin-bottom: 10px;">
+          <label style="width: 90px; margin: 0;" for="ext2">Score 2</label>
+          <input type="range" id="ext2" min="0" max="1" step="0.01" value="0.80">
+          <span class="slider-value" id="ext2-val">0.80</span>
+        </div>
+        <div class="slider-row">
+          <label style="width: 90px; margin: 0;" for="ext3">Score 3</label>
+          <input type="range" id="ext3" min="0" max="1" step="0.01" value="0.82">
+          <span class="slider-value" id="ext3-val">0.82</span>
+        </div>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" id="predict-btn">Predict</button>
+        <button type="button" id="example-btn">Risky example</button>
+      </div>
+      <div id="status" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+
+  <div class="card" id="result">
+    <div class="result-top">
+      <div>
+        <div class="pd-value" id="pd-value">-</div>
+        <div class="pd-label">probability of default</div>
+      </div>
+      <span class="badge" id="decision-badge">-</span>
+    </div>
+    <div class="meta" id="result-meta"></div>
+  </div>
+
+  <footer>
+    <a href="https://github.com/RobertoEstradah/credit-risk-scoring">Source on GitHub</a>
+     &middot;
+    <a href="/docs">API reference</a>
+  </footer>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  for (const [sliderId, valueId] of [["ext1", "ext1-val"], ["ext2", "ext2-val"], ["ext3", "ext3-val"]]) {
+    $(sliderId).addEventListener("input", (e) => {
+      $(valueId).textContent = parseFloat(e.target.value).toFixed(2);
+    });
+  }
+
+  $("example-btn").addEventListener("click", () => {
+    $("income").value = 90000;
+    $("credit").value = 900000;
+    $("annuity").value = 60000;
+    $("age").value = 23;
+    $("employed").value = 0;
+    $("ext1").value = 0.10; $("ext1-val").textContent = "0.10";
+    $("ext2").value = 0.12; $("ext2-val").textContent = "0.12";
+    $("ext3").value = 0.08; $("ext3-val").textContent = "0.08";
+  });
+
+  const form = $("score-form");
+  const statusEl = $("status");
+  const resultEl = $("result");
+  const btn = $("predict-btn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      AMT_INCOME_TOTAL: parseFloat($("income").value),
+      AMT_CREDIT: parseFloat($("credit").value),
+      AMT_ANNUITY: parseFloat($("annuity").value) || null,
+      DAYS_BIRTH: -Math.round(parseFloat($("age").value) * 365),
+      DAYS_EMPLOYED: -Math.round(parseFloat($("employed").value) * 365),
+      EXT_SOURCE_1: parseFloat($("ext1").value),
+      EXT_SOURCE_2: parseFloat($("ext2").value),
+      EXT_SOURCE_3: parseFloat($("ext3").value),
+    };
+
+    btn.disabled = true;
+    btn.textContent = "Scoring...";
+    resultEl.classList.remove("visible");
+    statusEl.className = "";
+    statusEl.textContent = "";
+
+    const wakingHint = setTimeout(() => {
+      statusEl.textContent = "Still working - the free-tier server may be waking up from sleep (can take up to a minute).";
+    }, 4000);
+
+    try {
+      const res = await fetch("/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      clearTimeout(wakingHint);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail ? JSON.stringify(err.detail) : `Request failed (${res.status})`);
+      }
+
+      const data = await res.json();
+      statusEl.textContent = "";
+
+      $("pd-value").textContent = (data.probability_of_default * 100).toFixed(1) + "%";
+      const badge = $("decision-badge");
+      badge.textContent = data.decision;
+      badge.className = "badge " + data.decision;
+      $("result-meta").textContent =
+        `model=${data.model}  threshold=${data.threshold}  trained_on=${data.trained_on}`;
+
+      resultEl.classList.add("visible");
+    } catch (err) {
+      clearTimeout(wakingHint);
+      statusEl.className = "error";
+      statusEl.textContent = err.message || "Something went wrong.";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Predict";
+    }
+  });
+</script>
+</body>
+</html>

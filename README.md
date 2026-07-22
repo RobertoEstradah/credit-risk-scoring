@@ -4,20 +4,24 @@ End-to-end credit default prediction system: multi-table data validation →
 domain + historical feature engineering → model comparison (Logistic Regression
 vs LightGBM) → KS/AUC evaluation → **cost-based decision threshold
 optimization** → SHAP explainability → **FastAPI scoring service** (Docker,
-CI). Leakage-safe sklearn Pipelines, 17-test suite, train/serve parity.
+CI). Leakage-safe sklearn Pipelines, 18-test suite, train/serve parity.
 
-**Live demo:** [credit-risk-scoring-58zh.onrender.com/docs](https://credit-risk-scoring-58zh.onrender.com/docs)
-(Swagger UI - try `/score` interactively). Free-tier hosting sleeps after
-inactivity, so the first request after a while can take ~30-60s to wake up;
-subsequent requests are fast. Serves the real Kaggle-trained model - check
-`/health` to confirm.
+**Live demo:** [credit-risk-scoring-58zh.onrender.com/demo](https://credit-risk-scoring-58zh.onrender.com/demo)
+(a small form UI - fill it in and get a real prediction). Prefer raw
+endpoints? [`/docs`](https://credit-risk-scoring-58zh.onrender.com/docs) has
+interactive Swagger. Free-tier hosting sleeps after inactivity, so the first
+request after a while can take ~30-60s to wake up; subsequent requests are
+fast. Serves the real Kaggle-trained model - check `/health` to confirm.
 
 Why bother deploying instead of leaving this as code: a repo proves you can
 write a pipeline, a running service proves the pipeline actually works.
 The `/health` response matching the holdout AUC reported below is evidence
 of train/serve parity, not just a claim in a docstring - and it means
 anyone can try it without cloning, installing dependencies, or trusting
-that `run_pipeline.py` behaves the way the README says it does.
+that `run_pipeline.py` behaves the way the README says it does. Building
+the `/demo` form UI proved this thesis for real: exercising `/score` from
+a browser instead of only via curl with a fixed payload immediately
+surfaced a bug that 17 passing tests had missed - see below.
 
 > **Data source disclosure:** the pipeline runs on the real Home Credit
 > dataset when present (`data/download.sh`) and falls back to a synthetic
@@ -113,6 +117,19 @@ negligible (2/307,511) and, unlike the income outlier, there's no clear
 signal it's a data-entry error rather than a genuinely large family. See
 `notebooks/01_eda.ipynb`.
 
+**Bug found by building the `/demo` UI, not by testing:** `POST /score` with
+an omitted optional field (e.g. no `DAYS_EMPLOYED`) crashed with a 500. Root
+cause: `pd.DataFrame([applicant.model_dump()])` on a single-row dict puts
+`None` values into an `object`-dtype column instead of `float64` - unary
+negation on that column (`add_domain_features`) then raises `TypeError:
+bad operand type for unary -: 'NoneType'`. All 17 existing tests passed
+because every fixture always supplied every optional field; the real bug
+only surfaced when a human filled in a form and left something blank. Fixed
+in `app/main.py::score` by converting `None -> np.nan` before building the
+DataFrame (`np.nan` is float64 even in a single-row column, matching how
+training data represents missing values). Covered by
+`tests/test_api.py::test_score_handles_missing_optional_fields`.
+
 ## Architecture
 
 ```
@@ -147,7 +164,7 @@ Docker + GitHub Actions CI   - tests → train → API tests on every push
 
 ```bash
 pip install -r requirements.txt
-python -m pytest tests/ -q          # 17 tests, <5 s, no external data needed
+python -m pytest tests/ -q          # 18 tests, <5 s, no external data needed
 python run_pipeline.py --shap       # full run (synthetic fallback if no CSV)
 uvicorn app.main:app --reload       # scoring service on :8000
 
@@ -212,10 +229,11 @@ curl -X POST localhost:8000/score -H "Content-Type: application/json" -d '{
 ## Repository layout
 
 ```
-app/main.py            FastAPI scoring service
+app/main.py            FastAPI scoring service (/score, /health, /demo)
+app/static/demo.html   self-contained form UI for /demo (vanilla HTML/CSS/JS)
 src/                   config, data, aggregates, features, train, evaluate, explain
 notebooks/01_eda.ipynb executed EDA with findings (declares data source)
-tests/                 17 tests: schema, leakage, metrics, e2e, API contract
+tests/                 18 tests: schema, leakage, metrics, e2e, API contract
 reports/               results.json, figures, cost curve, SHAP outputs
 data/download.sh       Kaggle download script
 Dockerfile · .github/workflows/ci.yml

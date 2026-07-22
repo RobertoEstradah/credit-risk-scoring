@@ -55,3 +55,16 @@ def test_risk_ordering(client):
 def test_validation_rejects_bad_input(client):
     r = client.post("/score", json={"AMT_INCOME_TOTAL": -5, "AMT_CREDIT": 100, "DAYS_BIRTH": -9000})
     assert r.status_code == 422
+
+
+def test_score_handles_missing_optional_fields(client):
+    """Omitir un campo opcional (ej. DAYS_EMPLOYED) debe imputar, no tronar.
+
+    Bug real: pandas infiere dtype=object (no float64) para una columna cuyo
+    único valor en un DataFrame de una fila es None, lo que rompe la resta
+    unaria en add_domain_features con un TypeError -> 500.
+    """
+    minimal = {"AMT_INCOME_TOTAL": 250_000, "AMT_CREDIT": 400_000, "DAYS_BIRTH": -40 * 365}
+    r = client.post("/score", json=minimal)
+    assert r.status_code == 200
+    assert 0.0 <= r.json()["probability_of_default"] <= 1.0

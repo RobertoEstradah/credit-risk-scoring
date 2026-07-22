@@ -20,11 +20,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import joblib
+import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, ConfigDict, Field
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "model.joblib"
+DEMO_HTML_PATH = Path(__file__).resolve().parent / "static" / "demo.html"
 
 REPO_URL = "https://github.com/RobertoEstradah/credit-risk-scoring"
 
@@ -46,11 +49,17 @@ _artifact: dict | None = None
 @app.get("/", include_in_schema=False)
 def root():
     return {
-        "message": "Credit Risk Scoring API - see /docs for interactive docs",
+        "message": "Credit Risk Scoring API - see /demo for a UI or /docs for interactive API docs",
+        "demo": "/demo",
         "docs": "/docs",
         "health": "/health",
         "repo": REPO_URL,
     }
+
+
+@app.get("/demo", response_class=HTMLResponse, include_in_schema=False)
+def demo():
+    return DEMO_HTML_PATH.read_text(encoding="utf-8")
 
 
 def get_artifact() -> dict:
@@ -142,7 +151,12 @@ def health():
 @app.post("/score", response_model=ScoreResponse)
 def score(applicant: Applicant):
     art = get_artifact()
-    row = pd.DataFrame([applicant.model_dump()])
+    # None -> NaN antes de construir el DataFrame: con una sola fila, pandas
+    # infiere dtype=object (no float64) para una columna cuyo único valor es
+    # None, y la resta unaria de add_domain_features truena sobre ese dtype.
+    # np.nan sí produce float64, igual que los nulos en entrenamiento.
+    data = {k: (np.nan if v is None else v) for k, v in applicant.model_dump().items()}
+    row = pd.DataFrame([data])
 
     # features de dominio, idénticas a entrenamiento (paridad train/serve)
     from src.features import add_domain_features
