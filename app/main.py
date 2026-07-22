@@ -22,12 +22,35 @@ from pathlib import Path
 import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "model.joblib"
 
-app = FastAPI(title="Credit Risk Scoring API", version="0.1.0")
+REPO_URL = "https://github.com/RobertoEstradah/credit-risk-scoring"
+
+app = FastAPI(
+    title="Credit Risk Scoring API",
+    version="0.1.0",
+    description=(
+        "Predicts probability of default (PD) for a credit applicant using "
+        "a LightGBM model trained on the real Home Credit Default Risk "
+        "dataset (307,511 applications), and returns an approve/reject "
+        "decision based on a cost-minimizing threshold, not a naive 0.5 "
+        f"cutoff. Full write-up, architecture, and source: [{REPO_URL}]"
+        f"({REPO_URL})."
+    ),
+)
 _artifact: dict | None = None
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return {
+        "message": "Credit Risk Scoring API - see /docs for interactive docs",
+        "docs": "/docs",
+        "health": "/health",
+        "repo": REPO_URL,
+    }
 
 
 def get_artifact() -> dict:
@@ -44,6 +67,21 @@ def get_artifact() -> dict:
 
 class Applicant(BaseModel):
     """Solicitud de crédito. Campos opcionales → null se imputa como en training."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "AMT_INCOME_TOTAL": 250000,
+                "AMT_CREDIT": 400000,
+                "AMT_ANNUITY": 25000,
+                "DAYS_BIRTH": -14600,
+                "DAYS_EMPLOYED": -4380,
+                "EXT_SOURCE_1": 0.85,
+                "EXT_SOURCE_2": 0.8,
+                "EXT_SOURCE_3": 0.82,
+            }
+        }
+    )
 
     AMT_INCOME_TOTAL: float = Field(..., gt=0)
     AMT_CREDIT: float = Field(..., gt=0)
