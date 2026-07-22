@@ -12,6 +12,13 @@ inactivity, so the first request after a while can take ~30-60s to wake up;
 subsequent requests are fast. Serves the real Kaggle-trained model - check
 `/health` to confirm.
 
+Why bother deploying instead of leaving this as code: a repo proves you can
+write a pipeline, a running service proves the pipeline actually works.
+The `/health` response matching the holdout AUC reported below is evidence
+of train/serve parity, not just a claim in a docstring - and it means
+anyone can try it without cloning, installing dependencies, or trusting
+that `run_pipeline.py` behaves the way the README says it does.
+
 > **Data source disclosure:** the pipeline runs on the real Home Credit
 > dataset when present (`data/download.sh`) and falls back to a synthetic
 > generator with the same schema otherwise. Every artifact - `results.json`,
